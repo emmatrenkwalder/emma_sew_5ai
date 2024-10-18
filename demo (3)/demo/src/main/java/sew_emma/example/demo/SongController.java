@@ -1,4 +1,5 @@
 package sew_emma.example.demo;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +29,7 @@ public class SongController {
     }
 
     @PostMapping
-    public ResponseEntity<Song> createSong(@RequestBody Song song) {
+    public ResponseEntity<Song> createSong(@Valid @RequestBody Song song) {
         // Überprüfe, ob der Artist existiert
         if (song.getArtist() == null || !artistRepository.existsById(song.getArtist().getId())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // Bad Request, wenn der Artist nicht existiert
@@ -48,7 +49,7 @@ public class SongController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<Song> updateSong(@PathVariable Long id, @RequestBody Song updatedSong) {
+    public ResponseEntity<Song> updateSong(@PathVariable Long id,@Valid @RequestBody Song updatedSong) {
         if (!songRepository.existsById(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
