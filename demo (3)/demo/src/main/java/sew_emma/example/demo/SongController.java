@@ -1,12 +1,18 @@
 package sew_emma.example.demo;
-import jakarta.validation.Valid;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import sew_emma.example.demo.Atristrepository;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 @CrossOrigin (origins = "http://localhost:8081")//, allowedHeaders = "*", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS })
 @RestController
@@ -15,48 +21,129 @@ public class SongController {
 
     private final Singrespository songRepository;
     private final Atristrepository artistRepository;
+
     public SongController(Singrespository songRepository, Atristrepository artistRepository) {
         this.songRepository = songRepository;
-        this.artistRepository=artistRepository;
+        this.artistRepository = artistRepository;
     }
 
-    @GetMapping
-    public Page<Song> getSongs(Pageable pageable) { // paginierung
-        return songRepository.findAll(pageable); // Pageable pageable: Diese Methode gibt ein Page<Song>-Objekt zurück, das die abgerufenen Songs sowie Informationen über die Gesamtzahl der Seiten und die aktuelle Seite enthält.
-// seite von songs
-     //   Dies ist ein Parameter, der von Spring automatisch gefüllt wird. Der Pageable-Parameter enthält Informationen darüber, welche Seite von Daten der Client anfordert und wie viele Datensätze pro Seite zurückgegeben werden sollen.
-        //        Du kannst die Parameter in der Anfrage definieren, z. B. page (die Seite, die du anforderst) und size (die Anzahl der Elemente pro Seite). Spring Data JPA interpretiert diese Parameter und erstellt ein Pageable-Objekt.
-    }
-
-    @PostMapping
-    public ResponseEntity<Song> createSong(@Valid @RequestBody Song song) {
-        // Überprüfe, ob der Artist existiert
-        if (song.getArtist() == null || !artistRepository.existsById(song.getArtist().getId())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // Bad Request, wenn der Artist nicht existiert
+    @PostMapping("/upload")
+    public ResponseEntity<Song> uploadSong(@RequestParam("file") MultipartFile file,
+                                           @RequestParam("title") String title,
+                                           @RequestParam("artistId") Long artistId) {
+        // Überprüfe, ob die Datei leer ist
+        if (file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
 
-        // Lade den Artist aus der Datenbank, um sicherzustellen, dass er persistiert ist
-        Artist artist = artistRepository.findById(song.getArtist().getId())
+        // Überprüfe, ob der Künstler existiert
+        if (artistId == null || !artistRepository.existsById(artistId)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        try {
+            // Überprüfe den MIME-Typ
+            String contentType = file.getContentType();
+            if (!contentType.startsWith("audio/")) {
+                return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();
+            }
+
+            // Speichern als Base64-kodierten String
+            byte[] musicDataBytes = file.getBytes();
+            String musicData = Base64.getEncoder().encodeToString(musicDataBytes);
+
+            Song song = new Song();
+            song.setTitle(title);
+            song.setMusicData(musicData); // Setze die Musikdaten als Base64-String
+            song.setArtist(artistRepository.findById(artistId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Artist not found")));
+            song.setMusicData(musicData);
+            Song savedSong = songRepository.save(song);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedSong);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+
+        @GetMapping
+        public ResponseEntity<Page<Song>> getAllSongs(
+                @RequestParam(defaultValue = "0") int page,
+                @RequestParam(defaultValue = "5") int size) {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Song> songs = songRepository.findAll(pageable);
+            return ResponseEntity.ok(songs);
+        }
+
+        // Andere Methoden ...
+
+
+    @PostMapping
+    public ResponseEntity<Song> createSong(
+            @RequestParam("title") String title,
+            @RequestParam("genre") String genre,
+            @RequestParam("length") Integer length,
+            @RequestParam("artistId") Long artistId,
+            @RequestParam("musicFile") MultipartFile musicFile) {
+
+        // Check if the artist exists
+        if (artistId == null || !artistRepository.existsById(artistId)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        // Load the artist from the database
+        Artist artist = artistRepository.findById(artistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Artist not found"));
 
-        // Setze den geladenen Artist im Song
+        // Create a new Song object
+        Song song = new Song();
+        song.setTitle(title);
+        song.setGenre(genre);
+        song.setLength(length);
         song.setArtist(artist);
 
-        // Speichere den Song
+        // Save the file as a byte array
+        try {
+            song.setMusicData(Base64.getEncoder().encodeToString(musicFile.getBytes())); // Encode to Base64
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+        // Save the song
         Song savedSong = songRepository.save(song);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedSong);
     }
 
-
     @PutMapping("/{id}")
-    public ResponseEntity<Song> updateSong(@PathVariable Long id,@Valid @RequestBody Song updatedSong) {
-        if (!songRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    public ResponseEntity<Song> updateSong(
+            @PathVariable Long id,
+            @RequestParam("title") String title,
+            @RequestParam("artistId") Long artistId,
+            @RequestParam("genre") String genre,
+            @RequestParam("length") Integer length,
+            @RequestParam(value = "musicFile", required = false) MultipartFile musicFile) throws IOException {
+
+        Song song = songRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Song not found"));
+
+        song.setTitle(title);
+        song.setGenre(genre);
+        song.setLength(length);
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new RuntimeException("Artist not found"));
+        song.setArtist(artist);
+
+        if (musicFile != null && !musicFile.isEmpty()) {
+            song.setMusicData(Base64.getEncoder().encodeToString(musicFile.getBytes())); // Encode new music data
         }
 
-        updatedSong.setId(id);// setzt id
-        Song savedSong = songRepository.save(updatedSong); // speichert
-        return ResponseEntity.ok(savedSong); // gibt aktualisierten aus
+        Song updatedSong = songRepository.save(song);
+        return ResponseEntity.ok(updatedSong);
     }
 
     @DeleteMapping("/{id}")
@@ -74,4 +161,5 @@ public class SongController {
         List<Song> songs = songRepository.searchSongs(query);
         return ResponseEntity.ok(songs);
     }
+
 }
