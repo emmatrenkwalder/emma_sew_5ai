@@ -159,8 +159,9 @@ public class SongController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<SongData>> searchSongs(@RequestParam("query") String query) {
-        List<SongData> songs = songRepository.searchSongs(query);
+    public ResponseEntity<Page<SongData>> searchSongs(@RequestParam("query") String query) {
+        Pageable pageable = PageRequest.of(0, 5);
+        Page<SongData> songs = songRepository.findByTitleContainingIgnoreCase(query, pageable);
         return ResponseEntity.ok(songs);
     }
 
