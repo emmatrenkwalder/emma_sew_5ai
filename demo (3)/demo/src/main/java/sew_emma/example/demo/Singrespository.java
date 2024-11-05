@@ -16,8 +16,12 @@ public interface Singrespository extends JpaRepository<Song, Long> {
     //PagingAndSortingRepository: Dieses Interface wird erweitert, um Zugriff auf grundlegende CRUD-Operationen sowie auf Paginierungs- und Sortierfunktionen zu erhalten.
     //findByTitleContainingIgnoreCase: Diese Methode sucht nach Songs, deren Titel einen bestimmten String enthält, unabhängig von Groß- oder Kleinschreibung, und gibt die Ergebnisse paginiert zurück. Der Pageable-Parameter ermöglicht es, die gewünschte Seite und die Größe der Seite zu bestimmen.
 //Page<Song>: Der Rückgabewert ist vom Typ Page, was bedeutet, dass die Methode paginierte Ergebnisse zurückgibt.
-    @Query("SELECT s FROM Song s WHERE LOWER(s.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(s.artist.name) LIKE LOWER(CONCAT('%', :query, '%'))")
-    List<Song> searchSongs(@Param("query") String query);
+    @Query("SELECT s FROM Song s")
+    List<SongData> findAllProjectedBy();
+
+    // Beispiel mit einer Suchabfrage:
+    @Query("SELECT s FROM Song s WHERE s.title LIKE %:query%")
+    List<SongData> searchSongs(@Param("query") String query);
 }
 //package sew_emma.example.demo;
 //

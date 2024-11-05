@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,7 @@ public class SongController {
         this.songRepository = songRepository;
         this.artistRepository = artistRepository;
     }
+// UPLOAD
 
     @PostMapping("/upload")
     public ResponseEntity<Song> uploadSong(@RequestParam("file") MultipartFile file,
@@ -157,9 +159,24 @@ public class SongController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Song>> searchSongs(@RequestParam("query") String query) {
-        List<Song> songs = songRepository.searchSongs(query);
+    public ResponseEntity<List<SongData>> searchSongs(@RequestParam("query") String query) {
+        List<SongData> songs = songRepository.searchSongs(query);
         return ResponseEntity.ok(songs);
     }
 
+    @GetMapping("/projection")
+    public ResponseEntity<List<SongData>> getAllProjectedSongs() {
+        List<SongData> songs = songRepository.findAllProjectedBy();
+        return ResponseEntity.ok(songs);
+    }
+    @GetMapping("/{id:\\d+}/data")
+    public ResponseEntity<String> getSongData(@PathVariable Long id) {
+        Song song = songRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Song not found"));
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(song.getMusicData());
+    }
 }
+
+
