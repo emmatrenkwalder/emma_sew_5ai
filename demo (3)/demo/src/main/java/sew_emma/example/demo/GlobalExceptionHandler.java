@@ -1,4 +1,5 @@
 package sew_emma.example.demo;
+import org.hibernate.dialect.lock.OptimisticEntityLockException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -8,9 +9,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.HashMap;
 import java.util.Map;
 
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Handle validation exceptions (e.g., @NotNull, @Size, etc.)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -19,7 +22,24 @@ public class GlobalExceptionHandler {
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
+
+    // Handle optimistic locking failures (409 Conflict)
+    @ExceptionHandler(OptimisticEntityLockException.class)
+    public ResponseEntity<Map<String, String>> handleOptimisticLockingFailure(OptimisticEntityLockException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Datenkonflikt: Die Daten wurden inzwischen geändert. Bitte laden Sie die Seite neu.");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    // Handle other general exceptions
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGeneralExceptions(Exception ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
 }
+
 
 //@NotNull: Stellt sicher, dass das annotierte Feld nicht null ist.
 //@Size(min = x, max = y): Überprüft, ob die Länge des Strings innerhalb eines bestimmten Bereichs liegt.

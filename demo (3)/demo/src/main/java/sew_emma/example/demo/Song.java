@@ -17,7 +17,10 @@ public class Song {
     private String genre;
     @NotNull(message = "Length cannot be null")
     private Integer length;
-
+    @Version //The @Version annotation in the Song entity (private Integer version;) ensures that when a record is fetched and updated, the version field is checked against the current version in the database:
+   //- If the versions match, the update proceeds, and the version is incremented.
+       //     - If there's a version mismatch (indicating another update has occurred), an OptimisticLockException is thrown.
+    private Integer version;
     @NotNull(message = "Artist is mandatory")
     // Diese Klasse repräsentiert ein Lied.
 // Jedes Lied hat einen Titel, ein Genre, eine Länge und gehört zu einem Künstler (Many-to-One Beziehung).

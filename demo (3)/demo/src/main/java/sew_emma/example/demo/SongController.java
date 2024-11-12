@@ -2,6 +2,8 @@ package sew_emma.example.demo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.dialect.lock.OptimisticEntityLockException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -72,17 +74,16 @@ public class SongController {
     }
 
 
+    @GetMapping
+    public ResponseEntity<Page<Song>> getAllSongs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Song> songs = songRepository.findAll(pageable);
+        return ResponseEntity.ok(songs);
+    }
 
-        @GetMapping
-        public ResponseEntity<Page<Song>> getAllSongs(
-                @RequestParam(defaultValue = "0") int page,
-                @RequestParam(defaultValue = "5") int size) {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Song> songs = songRepository.findAll(pageable);
-            return ResponseEntity.ok(songs);
-        }
-
-        // Andere Methoden ...
+    // Andere Methoden ...
 
 
     @PostMapping
@@ -122,7 +123,7 @@ public class SongController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Song> updateSong(
+    public ResponseEntity<?> updateSong(
             @PathVariable Long id,
             @RequestParam("title") String title,
             @RequestParam("artistId") Long artistId,
@@ -130,24 +131,37 @@ public class SongController {
             @RequestParam("length") Integer length,
             @RequestParam(value = "musicFile", required = false) MultipartFile musicFile) throws IOException {
 
-        Song song = songRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Song not found"));
+        try {
+            // Song aus Repository holen
+            Song song = songRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Song not found"));
 
-        song.setTitle(title);
-        song.setGenre(genre);
-        song.setLength(length);
-        Artist artist = artistRepository.findById(artistId)
-                .orElseThrow(() -> new RuntimeException("Artist not found"));
-        song.setArtist(artist);
+            // Felder setzen
+            song.setTitle(title);
+            song.setGenre(genre);
+            song.setLength(length);
 
-        if (musicFile != null && !musicFile.isEmpty()) {
-            song.setMusicData(Base64.getEncoder().encodeToString(musicFile.getBytes())); // Encode new music data
+            // Künstler setzen
+            Artist artist = artistRepository.findById(artistId)
+                    .orElseThrow(() -> new RuntimeException("Artist not found"));
+            song.setArtist(artist);
+
+            // Musikdatei konvertieren und setzen, falls vorhanden
+            if (musicFile != null && !musicFile.isEmpty()) {
+                song.setMusicData(Base64.getEncoder().encodeToString(musicFile.getBytes()));
+            }
+
+            // Song aktualisieren
+            Song updatedSong = songRepository.save(song);
+            return ResponseEntity.ok(updatedSong);
+
+        } catch (OptimisticLockingFailureException | OptimisticEntityLockException e) {
+            // Handle concurrent update conflicts
+
+            // Konfliktbehandlung bei gleichzeitiger Aktualisierung
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Daten wurden bereits aktualisiert. Bitte neu laden.");// 9
         }
-
-        Song updatedSong = songRepository.save(song);
-        return ResponseEntity.ok(updatedSong);
     }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSong(@PathVariable Long id) {
         if (!songRepository.existsById(id)) {
