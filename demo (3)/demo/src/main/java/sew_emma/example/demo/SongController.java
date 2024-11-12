@@ -125,43 +125,51 @@ public class SongController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateSong(
             @PathVariable Long id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch, // Optional If-Match header
             @RequestParam("title") String title,
             @RequestParam("artistId") Long artistId,
             @RequestParam("genre") String genre,
             @RequestParam("length") Integer length,
             @RequestParam(value = "musicFile", required = false) MultipartFile musicFile) throws IOException {
 
-        try {
-            // Song aus Repository holen
-            Song song = songRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Song not found"));
+        Song song = songRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Song not found"));
 
-            // Felder setzen
-            song.setTitle(title);
-            song.setGenre(genre);
-            song.setLength(length);
+        // Generate current ETag for comparison
+        String currentETag = Integer.toString(song.hashCode());
 
-            // Künstler setzen
-            Artist artist = artistRepository.findById(artistId)
-                    .orElseThrow(() -> new RuntimeException("Artist not found"));
-            song.setArtist(artist);
-
-            // Musikdatei konvertieren und setzen, falls vorhanden
-            if (musicFile != null && !musicFile.isEmpty()) {
-                song.setMusicData(Base64.getEncoder().encodeToString(musicFile.getBytes()));
-            }
-
-            // Song aktualisieren
-            Song updatedSong = songRepository.save(song);
-            return ResponseEntity.ok(updatedSong);
-
-        } catch (OptimisticLockingFailureException | OptimisticEntityLockException e) {
-            // Handle concurrent update conflicts
-
-            // Konfliktbehandlung bei gleichzeitiger Aktualisierung
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Daten wurden bereits aktualisiert. Bitte neu laden.");// 9
+        // If If-Match header is present and doesn't match the current ETag, return 412 status
+        //Konkurrierende (oder parallele) Updates treten auf, wenn mehrere Clients gleichzeitig versuchen, dieselbe Ressource (z. B. eine Datenbankzeile oder ein Objekt) zu aktualisieren
+        if (ifMatch != null && !ifMatch.equals(currentETag)) {
+            return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED)
+                    .body("Data has been modified by another user. Please reload and try again.");
         }
+
+        // Proceed with original update functionality falls übereinstimmen
+        song.setTitle(title);
+        song.setGenre(genre);
+        song.setLength(length);
+
+        // Update artist if necessary
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new RuntimeException("Artist not found"));
+        song.setArtist(artist);
+
+        // Update music data if a new file is provided
+        if (musicFile != null && !musicFile.isEmpty()) {
+            song.setMusicData(Base64.getEncoder().encodeToString(musicFile.getBytes()));
+        }
+
+        Song updatedSong = songRepository.save(song);
+
+        // generiert neuen etag und schickt in antwort zurück
+        String updatedETag = Integer.toString(updatedSong.hashCode());
+        return ResponseEntity.ok()
+                .eTag(updatedETag)
+                .body(updatedSong);
     }
+
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSong(@PathVariable Long id) {
         if (!songRepository.existsById(id)) {
@@ -184,13 +192,21 @@ public class SongController {
         List<SongData> songs = songRepository.findAllProjectedBy();
         return ResponseEntity.ok(songs);
     }
+
     @GetMapping("/{id:\\d+}/data")
-    public ResponseEntity<String> getSongData(@PathVariable Long id) {
+    public ResponseEntity<?> getSongData(@PathVariable Long id) {
         Song song = songRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Song not found"));
+
+       // E TAG generieren
+        String eTag = Integer.toString(song.hashCode()); // Keeps it simple
+
+        // Return song with ETag im header
+        // ETag eindeutiger wert der zustand des liedes zeigt basierend auf hashcode
+
         return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(song.getMusicData());
+                .eTag(eTag)
+                .body(song);
     }
 }
 
