@@ -3,6 +3,7 @@ package sew_emma.example.demo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.dialect.lock.OptimisticEntityLockException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,7 +29,7 @@ public class SongController {
     private final BenutzerRepository benutzerRepository;
     //private final BCryptPasswordEncoder passwordEncoder;
 
-
+@Autowired
     public SongController(Singrespository songRepository, Atristrepository artistRepository,BenutzerRepository benutzerRepository) { //BCryptPasswordEncoder passwordEncoder
         this.songRepository = songRepository;
         this.artistRepository = artistRepository;
