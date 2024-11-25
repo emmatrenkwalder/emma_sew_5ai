@@ -3,6 +3,7 @@ package sew_emma.example.demo;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,7 +15,7 @@ import java.util.Base64;
 public class Loaddatabase {
 
     @Bean
-    CommandLineRunner initDatabase(Singrespository songRepository, Atristrepository artistRepository) {
+    CommandLineRunner initDatabase(PasswordEncoder passwordEncoder, Singrespository songRepository, Atristrepository artistRepository, BenutzerRepository benutzerRepository) {
         return args -> {
 
             // Erstelle mehrere Artists (Künstler)
@@ -90,6 +91,21 @@ public class Loaddatabase {
             song6.setArtist(artist3);
             song6.setMusicData(defaultMusicData); // Verknüpft mit Artist Three
             songRepository.save(song6);
+
+            // Testbenutzer erstellen und hinzufügen
+            Benutzer benutzer1 = new Benutzer();
+            benutzer1.setUsername("hugo");
+            benutzer1.setRole("admin");
+            // Passwort verschlüsseln
+            benutzer1.setPassword(passwordEncoder.encode("securepassword"));
+            benutzerRepository.save(benutzer1);
+
+            Benutzer benutzer2 = new Benutzer();
+            benutzer2.setUsername("emma");
+            benutzer2.setRole("admin");
+            // Passwort verschlüsseln
+            benutzer2.setPassword(passwordEncoder.encode("anotherpassword"));
+            benutzerRepository.save(benutzer2);
 
             System.out.println("Testdaten wurden erfolgreich in die Datenbank geladen!");
         };

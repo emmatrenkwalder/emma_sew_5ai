@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import sew_emma.example.demo.Atristrepository;
@@ -24,10 +25,15 @@ public class SongController {
 
     private final Singrespository songRepository;
     private final Atristrepository artistRepository;
+    private final BenutzerRepository benutzerRepository;
+    //private final BCryptPasswordEncoder passwordEncoder;
 
-    public SongController(Singrespository songRepository, Atristrepository artistRepository) {
+
+    public SongController(Singrespository songRepository, Atristrepository artistRepository,BenutzerRepository benutzerRepository) { //BCryptPasswordEncoder passwordEncoder
         this.songRepository = songRepository;
         this.artistRepository = artistRepository;
+        this.benutzerRepository=benutzerRepository;
+       // this.passwordEncoder=passwordEncoder;
     }
 // UPLOAD
 
@@ -81,7 +87,7 @@ public class SongController {
         Pageable pageable = PageRequest.of(page, size);
         Page<Song> songs = songRepository.findAll(pageable);
         return ResponseEntity.ok(songs);
-    }
+    }   
 
     // Andere Methoden ...
 
@@ -203,11 +209,15 @@ public class SongController {
 
         // Return song with ETag im header
         // ETag eindeutiger wert der zustand des liedes zeigt basierend auf hashcode
-
+      //  Ein ETag (Entity Tag) ist ein Header in HTTP, der eine eindeutige Kennzeichnung einer bestimmten Version einer Ressource darstellt.
+        //enn eine Ressource geändert wird, ändert sich auch ihr ETag. Das ermöglicht es dem Server und dem Client zu erkennen, ob eine Ressource seit dem letzten Abruf geändert wurde.
         return ResponseEntity.ok()
                 .eTag(eTag)
                 .body(song);
     }
+    // Ein **ETag** (Entity Tag) ist ein Header in HTTP, der eine eindeutige Kennzeichnung einer bestimmten Version einer Ressource darstellt. Er wird verwendet, um den Zustand einer Ressource zu verfolgen und sicherzustellen, dass Clients nur die aktuellste Version bearbeiten. Wenn eine Ressource geändert wird, ändert sich auch ihr ETag. Das ermöglicht es dem Server und dem Client zu erkennen, ob eine Ressource seit dem letzten Abruf geändert wurde.
+    //
+    //Der **If-Match-Header** wird in HTTP-Requests verwendet, um die Konsistenz bei Updates sicherzustellen. Ein Client sendet den ETag der Version, die er ändern möchte, im `If-Match`-Header. Der Server prüft dann, ob der ETag der aktuellen Version entspricht. Wenn die ETags übereinstimmen, wird das Update durchgeführt. Falls die Ressource jedoch zwischenzeitlich von einem anderen Client geändert wurde (und der ETag daher nicht mehr stimmt), lehnt der Server das Update mit dem Statuscode `412 Precondition Failed` ab. Dies verhindert, dass parallele Updates Änderungen überschreiben.
 }
 
 
