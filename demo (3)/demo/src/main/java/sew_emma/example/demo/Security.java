@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -24,15 +25,18 @@ public class Security {
     public static class SecurityConfig {
 
         /**
-         * Configures the security filter chain for Spring Security.
+         * authentication -> correct permission
+         * S
+         *
          */
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-            http
+            http.sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .csrf(csrf -> csrf.disable())
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/api/benutzer/register", "/api/benutzer/login").permitAll() // Public endpoints
+                            .requestMatchers("/api/benutzer/register", "/api/benutzer/login","/api/benutzer/logout","/api/songs/**","/api/artists/**").permitAll()
+                            .requestMatchers("/**").authenticated()// Public endpoints
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             .anyRequest().authenticated() // Protect all other endpoints
 

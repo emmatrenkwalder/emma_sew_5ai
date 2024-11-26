@@ -1,10 +1,14 @@
 package sew_emma.example.demo;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -53,6 +57,8 @@ public class BenutzerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Ungültige Anmeldedaten.");
         }
 
+        UsernamePasswordAuthenticationToken authenticationToken= new UsernamePasswordAuthenticationToken(existingUser,null,List.of(new SimpleGrantedAuthority(existingUser.getRole())));
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         return ResponseEntity.ok("Login erfolgreich.");
     }
 
@@ -73,5 +79,11 @@ public class BenutzerController {
         // Benutzer speichern
         benutzerRepository.save(benutzer);
         return ResponseEntity.status(HttpStatus.CREATED).body("Benutzer erfolgreich erstellt.");
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout (HttpServletRequest request , HttpServletResponse response){
+        request.getSession().invalidate();
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok("logout erfolgreich");
     }
 }
