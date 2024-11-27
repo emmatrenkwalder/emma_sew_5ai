@@ -18,10 +18,28 @@ public class Song {
     @NotBlank(message = "Title cannot be empty")
     private String title;
     //@NotBlank(message = "Genre cannot be empty")
+    //What are Collections?
+    //
+    //A collection is a framework that provides an architecture to store and manipulate groups of objects.
+    //In Java, collections include Lists, Sets, and Maps.
+    //List: An ordered collection, allows duplicates (e.g., a list of songs).
+    //Set: A collection that does not allow duplicates.
+    //Map: A collection of key-value pairs, like a dictionary.
+    //How to use Collections within Spring Boot?
+    //
+    //In Spring Data JPA, collections are used to map one-to-many or many-to-many relationships between entities. For example, a User might have many Orders, or an Artist might have many Songs.
+    //Collections are often used to represent the "many" side of a relationship, while the "one" side is typically represented by a single entity.
+    //Applying the Use of Collections to a Field:
+    //
+    //When you create entities, you can use collections to represent relationships between them. Here's how you can apply collections to a field within your Spring Boot applicatio
     @ElementCollection
+    //1. @ElementCollection
+    //Die @ElementCollection Annotation wird verwendet, um eine einfache Sammlung von Werten zu speichern, die keine eigenständige Entität sind (z. B. eine Liste von Strings, Integern, etc.). Wenn du eine Sammlung von einfachen Werten in einer Entität speichern möchtest, kannst du @ElementCollection verwenden.
+    //
+    //In deinem Fall speicherst du eine Liste von String-Werten (also Genres) in einer Tabelle, die diese Sammlung von Werten repräsentiert.
     @CollectionTable(name="song_genres",joinColumns = @JoinColumn(name="song_id"))
     @Column(name="genre")
-    private List<String> genres =new ArrayList<>();
+    private List<String> genres =new ArrayList<>(); //
     @NotNull(message = "Length cannot be null")
     private Integer length;
     @Version //The @Version annotation in the Song entity (private Integer version;) ensures that when a record is fetched and updated, the version field is checked against the current version in the database:
