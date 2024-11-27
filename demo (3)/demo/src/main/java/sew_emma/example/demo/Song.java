@@ -5,6 +5,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import sew_emma.example.demo.Artist;
 
+import java.sql.Array;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 public class Song {
 
@@ -13,8 +17,11 @@ public class Song {
     private Long id;
     @NotBlank(message = "Title cannot be empty")
     private String title;
-    @NotBlank(message = "Genre cannot be empty")
-    private String genre;
+    //@NotBlank(message = "Genre cannot be empty")
+    @ElementCollection
+    @CollectionTable(name="song_genres",joinColumns = @JoinColumn(name="song_id"))
+    @Column(name="genre")
+    private List<String> genres =new ArrayList<>();
     @NotNull(message = "Length cannot be null")
     private Integer length;
     @Version //The @Version annotation in the Song entity (private Integer version;) ensures that when a record is fetched and updated, the version field is checked against the current version in the database:
@@ -61,12 +68,12 @@ public class Song {
         this.artist = artist;
     }
 
-    public String getGenre() {
-        return genre;
+    public List<String> getGenre() {
+        return genres;
     }
 
-    public void setGenre(String genre) {
-        this.genre = genre;
+    public void setGenre(List<String>genre) {
+        this.genres = genre;
     }
 
     public Integer getLength() {

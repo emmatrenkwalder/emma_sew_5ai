@@ -1,9 +1,11 @@
 package sew_emma.example.demo;
 
+import java.util.List;
+
 public interface SongData {
     Long getId();
     String getTitle();
-    String getGenre();
+   List< String > getGenre();
     Integer getLength();
     ArtistProjection getArtist();
 

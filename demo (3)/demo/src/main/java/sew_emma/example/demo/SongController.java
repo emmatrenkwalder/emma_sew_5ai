@@ -96,7 +96,7 @@ public class SongController {
     @PostMapping
     public ResponseEntity<Song> createSong(
             @RequestParam("title") String title,
-            @RequestParam("genre") String genre,
+            @RequestParam("genre") List<String> genre,
             @RequestParam("length") Integer length,
             @RequestParam("artistId") Long artistId,
             @RequestParam("musicFile") MultipartFile musicFile) {
@@ -135,7 +135,7 @@ public class SongController {
             @RequestHeader(value = "If-Match", required = false) String ifMatch, // Optional If-Match header
             @RequestParam("title") String title,
             @RequestParam("artistId") Long artistId,
-            @RequestParam("genre") String genre,
+            @RequestParam("genre") List<String> genre,
             @RequestParam("length") Integer length,
             @RequestParam(value = "musicFile", required = false) MultipartFile musicFile) throws IOException {
 
@@ -218,7 +218,24 @@ public class SongController {
     }
     // Ein **ETag** (Entity Tag) ist ein Header in HTTP, der eine eindeutige Kennzeichnung einer bestimmten Version einer Ressource darstellt. Er wird verwendet, um den Zustand einer Ressource zu verfolgen und sicherzustellen, dass Clients nur die aktuellste Version bearbeiten. Wenn eine Ressource geändert wird, ändert sich auch ihr ETag. Das ermöglicht es dem Server und dem Client zu erkennen, ob eine Ressource seit dem letzten Abruf geändert wurde.
     //
+
+    @GetMapping("/searchByGenres")
+    public ResponseEntity<Page<Song>> searchByGenres(
+            @RequestParam("genres") List<String> genres,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Konvertieren Sie Genres in Kleinbuchstaben
+        List<String> lowerCaseGenres = genres.stream()
+                .map(String::toLowerCase)
+                .toList();
+
+        Page<Song> songs = songRepository.findByAnyGenre(lowerCaseGenres, pageable);
+        return ResponseEntity.ok(songs);
+    }
     //Der **If-Match-Header** wird in HTTP-Requests verwendet, um die Konsistenz bei Updates sicherzustellen. Ein Client sendet den ETag der Version, die er ändern möchte, im `If-Match`-Header. Der Server prüft dann, ob der ETag der aktuellen Version entspricht. Wenn die ETags übereinstimmen, wird das Update durchgeführt. Falls die Ressource jedoch zwischenzeitlich von einem anderen Client geändert wurde (und der ETag daher nicht mehr stimmt), lehnt der Server das Update mit dem Statuscode `412 Precondition Failed` ab. Dies verhindert, dass parallele Updates Änderungen überschreiben.
 }
+
 
 

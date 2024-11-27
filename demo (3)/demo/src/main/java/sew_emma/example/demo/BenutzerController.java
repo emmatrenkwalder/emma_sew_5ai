@@ -57,8 +57,8 @@ public class BenutzerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Ungültige Anmeldedaten.");
         }
 
-        UsernamePasswordAuthenticationToken authenticationToken= new UsernamePasswordAuthenticationToken(existingUser,null,List.of(new SimpleGrantedAuthority(existingUser.getRole())));
-        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+        UsernamePasswordAuthenticationToken authentication= new UsernamePasswordAuthenticationToken(existingUser,null,List.of(new SimpleGrantedAuthority(existingUser.getRole())));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         return ResponseEntity.ok("Login erfolgreich.");
     }
 
